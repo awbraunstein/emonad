@@ -1,0 +1,68 @@
+#+TITLE:     552 Final Project Proposal (emonad)
+#+AUTHOR:    Andrew Braunstein <bandrew> and Rafe Kettler <rkettler>
+#+EMAIL:     bandrew@seas.upenn.edu -- rkettler@seas.upenn.edu
+#+DATE:      2012-11-04 Sun
+#+DESCRIPTION:
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+
+* Description
+  Emonad is a text editor that is similar to emacs, but written in
+  Haskell. The frontend will be text only. The editor logic will be
+  completely pure reducing bugs and complications. This will be an
+  interesting design approach to text editors since most text editors,
+  including emacs, are written with lots of mutable state. While emacs has
+  elisp at its core, emonad will have Haskell at its core. Config
+  files will be written in Haskell.
+
+* Typical Use Case
+  - 552 Homework
+    Open a haskell buffer, make changes, save it.
+  - Writing a letter to a long lost friend
+    Open a text buffer, make changes, save it.
+  - Proving P /= NP (Coq mode needed)
+  - Anywhere you would use emacs, you can just use emonad!!
+
+* Architecture
+** Ncurses frontend
+   - Uses hscurses
+   - Display editor state
+     - Display current buffer
+     - Mode (saved, changed, readonly)
+     - Line numbers
+     - Line/Column
+     - Name of current buffer
+     - Echo area
+** User Input Module
+   - Listens to keypresses
+   - Updates editor state accordingly
+** Core Editor Module
+   - List of buffers
+   - Modes
+   - Buffer Transformers
+** Buffer Module
+   - Write to disk
+   - Mark/Point
+   - Text
+   - Other metadata
+** Config file loader
+   - Keybindings
+   - Macros
+
+* Effort Budget
+  1. Build the Buffer module - 10hrs
+  2. Build Editor module - 10hrs
+  3. Build the ncurses frontend - 10hrs
+  4. Build the event loop - 3hrs
+  5. Build the config file loader - 7hrs
+  6. Syntax highlighting - 2hrs (Maybe)
+  7. Indentation - 4hrs (Maybe)
+  8. More testing/Performance improvements - ??? (Maybe)
+
+     
+    
