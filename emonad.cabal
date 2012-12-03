@@ -5,7 +5,7 @@ name:                emonad
 version:             0.1.0.0
 synopsis:            Haskell Text Editor
 -- description:         
--- license:             
+license:             MIT
 license-file:        LICENSE
 author:              Andrew Braunstein, Rafe Kettler
 -- maintainer:          
