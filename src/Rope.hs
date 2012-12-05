@@ -1,72 +1,24 @@
 module Rope where
 
-data Rope a = Empty | Branch Int (Rope a) (Maybe [a]) (Rope a)
+import Prelude hiding (take,drop)
+import qualified Data.List as L
+import Data.Monoid
+import Data.Rope
 
-index :: Int -> Rope a -> Maybe a
-index a = index' (a + 1) where
-  index' _ Empty = Nothing
-  index' i (Branch w l a r)
-    | w < i = index' (i-w) r
-    | otherwise =
-      case l of
-        Empty -> do
-               as <- a
-               return $ as !! (i - 1)
-        otherwise -> index' i l
+-- | Delete the character at a particular index in a rope. O(log(n))
+delete :: Rope -> Int -> Rope
+delete r i = take (i - 1) r `mappend` drop i r
 
-insert :: a -> Int -> Rope a -> Rope a
+-- | Find the index of a character in the rope. O(n)
+elemIndex :: Rope -> Char -> Maybe Int
+elemIndex r c = L.elemIndex c (toString r)
 
+-- | Find the index of a character searching forward from a particular index. O(n)
+elemIndexForward :: Rope -> Int -> Char -> Maybe Int
+elemIndexForward r i c = do j <- elemIndex (drop (i - 1) r) c
+                            return $ i + j - 1
 
-
-
-
-
-
-
-
-
-
-testRope :: Rope Char
-testRope = (Branch 22
-                     (Branch 9
-                               (Branch 9
-                                         (Branch 6 Empty (Just "Hello_")
-                                                   (Branch 3 Empty (Just "my_") Empty))
-                                         Nothing
-                                         Empty
-                               )
-                      Nothing
-                      (Branch 7
-                                (Branch 6
-                                          (Branch 2
-                                                  Empty
-                                                  (Just "na")
-                                                  (Branch 4 Empty (Just "me_i") Empty)
-                                          )
-                                          Nothing
-                                          (Branch 1
-                                                    (Branch 1 Empty (Just "s") Empty)
-                                                    Nothing
-                                                    Empty
-                                          )
-                                )
-                                Nothing
-                                (Branch 6
-                                          (Branch 6
-                                                    (Branch 6
-                                                            Empty
-                                                            (Just "_Simon")
-                                                            Empty
-                                                    )
-                                                    Nothing
-                                                    Empty
-                                          )
-                                          Nothing
-                                          Empty
-                                )
-
-                      )
-                     )
-                     Nothing
-                     Empty
-           )
+-- | O(n). Find the index of a character searching backward from a particular index.
+--   Includes the character at the index in its search.
+elemIndexBackward :: Rope -> Int -> Char -> Maybe Int
+elemIndexBackward r i = elemIndex (take (i + 1) r)
