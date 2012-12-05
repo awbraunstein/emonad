@@ -31,7 +31,12 @@ movePrevious = moveBackwardToDelimiter '\n'
 
 -- | Move to the same position in the next line.
 moveNext :: Buffer -> Buffer
-moveNext = moveForward . moveToEndOfLine
+moveNext b@(B t p m) =
+  let start = case R.elemIndexBackward t p '\n' of
+                Nothing -> 0
+                Just x -> x in
+  let b'@(B t' p' m') = moveToEndOfLine b in
+  moveForwardUntilDelimiter (p - start) '\n' b'
 
 -- | Delete a character at an index.
 deleteChar :: Int -> Buffer -> Buffer
@@ -47,7 +52,7 @@ deleteCharBeforePoint b@(B t p m) = deleteChar (p - 1) b
 
 -- | Insert a character at an index.
 insertChar :: Int -> Char -> Buffer -> Buffer
-insertChar i c (B t p m) = B (R.insert i c t) p m 
+insertChar i c (B t p m) = B (R.insert i c t) p m
 
 -- | Insert a character at the point.
 insertCharAtPoint :: Char -> Buffer -> Buffer
@@ -64,6 +69,16 @@ placeMarkAtPoint b = placeMark (point b) b
 -- | Swap the point and mark.
 swapPointAndMark :: Buffer -> Buffer
 swapPointAndMark (B t p m) = B t m p
+
+moveForwardUntilDelimiter :: Int -> Char -> Buffer -> Buffer
+moveForwardUntilDelimiter 0 _ b = b
+moveForwardUntilDelimiter n c b@(B t p m) =
+  case R.index p t of
+    Nothing -> b
+    Just c' -> if c' == c then
+                 b
+               else
+                 moveForwardUntilDelimiter (n-1) c (moveForward b)
 
 -- | Move the point forward to the next instance of a character, the delimiter.
 --   If the character doesn't exist after the point, don't move the point.
