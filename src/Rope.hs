@@ -1,6 +1,6 @@
 module Rope where
 
-import Prelude hiding (take,drop,splitAt)
+import Prelude hiding (take,drop,splitAt,length)
 import qualified Data.List as L
 import Data.Monoid
 import Data.Rope
@@ -28,3 +28,9 @@ elemIndexForward r i c = do j <- elemIndex (drop (i - 1) r) c
 --   Includes the character at the index in its search.
 elemIndexBackward :: Rope -> Int -> Char -> Maybe Int
 elemIndexBackward r i = elemIndex (take (i + 1) r)
+
+-- | Find the character at the current index given
+index :: Int -> Rope -> Maybe Char
+index i r
+       | i >= length r || i < 0 = Nothing
+       | otherwise = Just $ L.head $ toString $ take 1 $ drop i r
