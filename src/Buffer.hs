@@ -84,4 +84,6 @@ moveToEndOfLine :: Buffer -> Buffer
 moveToEndOfLine = moveForwardToDelimiter '\n'
 
 goToLine :: Int -> Buffer -> Buffer
-goToLine = undefined
+goToLine n b@(B t p m) = goToLine' n (B t 0 m)
+  where goToLine' 0 b = b
+        goToLine' n b = goToLine' (n-1) $ moveForwardToDelimiter '\n' b
