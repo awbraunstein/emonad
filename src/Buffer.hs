@@ -70,6 +70,7 @@ placeMarkAtPoint b = placeMark (point b) b
 swapPointAndMark :: Buffer -> Buffer
 swapPointAndMark (B n t p m) = B n t m p
 
+-- | Move forward n times or until you see the specified character
 moveForwardUntilDelimiter :: Int -> Char -> Buffer -> Buffer
 moveForwardUntilDelimiter 0 _ b = b
 moveForwardUntilDelimiter n c b@(B _ t p _) =
