@@ -10,6 +10,25 @@ import qualified Rope as R
 -- Undo
 
 data Buffer = B { name :: String, text :: Rope, point :: Int, mark :: Int }
+            deriving Show
+
+instance Eq Buffer where
+  (B n1 _ _ _) == (B n2 _ _ _) = n1 == n2
+
+instance Ord Buffer where
+  (B n1 _ _ _) `compare` (B n2 _ _ _) = n1 `compare` n2
+
+-- | Rename a buffer
+renameBuffer :: String -> Buffer -> Buffer
+renameBuffer n (B _ t p m) = B n t p m
+
+-- | Make an empty buffer with a given name
+mkEmptyBuffer :: String -> Buffer
+mkEmptyBuffer = flip mkBuffer $ ""
+
+-- | Make a new buffer given a name and text
+mkBuffer :: String -> String -> Buffer
+mkBuffer n t = B n (R.fromString t) 0 0
 
 -- | Move relative to the point. Positive indices move the point forward,
 --   negative indices move the point backward.
