@@ -1,6 +1,7 @@
 module Editor where
 
-data Editor = Int
+import Graphics.Vty
+import Control.Monad.State
+import BufferList
 
-done :: Editor -> Bool
-done = const True
+data Editor = Editor { done :: Bool, bufferList :: BufferList }
