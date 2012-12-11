@@ -154,3 +154,7 @@ updatePage b@(B n t p m (start, end)) = let len = length $ R.toString t
                                                     else if lap < start then
                                                            B n t p m (start - 1, end - 1)
                                                          else b
+
+-- | Get the text visible on the current page of a buffer.
+getPage :: Buffer -> String
+getPage (B _ t _ _ (start,end)) = R.toString $ R.take (end - start) $ R.drop start t
