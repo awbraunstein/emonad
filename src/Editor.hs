@@ -51,4 +51,6 @@ updateEditor (EvKey (KASCII 'd') [MCtrl]) v = modifyCurrentBuffer deleteCharAtPo
 updateEditor (EvKey (KASCII ' ') [MCtrl]) v = modifyCurrentBuffer placeMarkAtPoint
 updateEditor (EvKey (KASCII 'a') [MCtrl]) v = modifyCurrentBuffer moveToBeginningOfLine
 updateEditor (EvKey (KASCII 'e') [MCtrl]) v = modifyCurrentBuffer moveToEndOfLine
+updateEditor (EvKey (KASCII 'v') [MCtrl]) v = modifyCurrentBuffer moveNextPage
+updateEditor (EvKey (KASCII 'v') [MMeta]) v = modifyCurrentBuffer movePreviousPage
 updateEditor _ _ = return ()

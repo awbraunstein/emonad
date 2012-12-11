@@ -155,6 +155,12 @@ updatePage b@(B n t p m (start, end)) = let len = length $ R.toString t
                                                            B n t p m (start - 1, end - 1)
                                                          else b
 
--- | Get the text visible on the current page of a buffer.
-getPage :: Buffer -> String
-getPage (B _ t _ _ (start,end)) = R.toString $ R.take (end - start) $ R.drop start t
+-- | Move to the next page
+moveNextPage :: Buffer -> Buffer
+moveNextPage b = goToLine (lineCount b + (end - start)) b where
+  (start, end) = page b
+
+-- | Move to the previous page
+movePreviousPage :: Buffer -> Buffer
+movePreviousPage b = goToLine (lineCount b - (end - start)) b where
+  (start,end) = page b
