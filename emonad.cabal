@@ -17,5 +17,5 @@ cabal-version:       >=1.8
 executable emonad
   main-is:             Main.hs
   -- other-modules:       
-  build-depends:       base ==4.5.*, rope, vty
+  build-depends:       base ==4.5.*, rope, vty, mtl
   hs-source-dirs:      src
