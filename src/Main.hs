@@ -1,9 +1,5 @@
 module Main where
 
-import UI
+import Editor
 
--- buffers
--- rendering
--- user input
-
-main = mainLoop
+main = runEditor

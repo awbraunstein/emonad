@@ -15,6 +15,11 @@ data BufferList = BL { buffers :: [Buffer], current :: Maybe Buffer }
 mkBufferList :: BufferList
 mkBufferList = BL [] Nothing
 
+-- | Transform the current buffer for the buffer list.
+transformCurrentBuffer :: (Buffer -> Buffer) -> BufferList -> BufferList
+transformCurrentBuffer f b@(BL _ Nothing) = b
+transformCurrentBuffer f (BL bs (Just c)) = BL bs (Just (f c))
+
 -- | Add a buffer to the buffer list.
 addBuffer :: Buffer -> BufferList -> BufferList
 addBuffer b (BL bs mc) = BL ((maybeToList mc) ++ bs) (Just b)

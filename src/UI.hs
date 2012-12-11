@@ -3,8 +3,7 @@
 module UI where
 
 import Graphics.Vty
-import Input
-import Editor
+import BufferList
 
 type Location = (Int, Int)
 
@@ -25,15 +24,5 @@ instance Drawable UI where
 drawUI :: UI -> IO ()
 drawUI = draw (0,0)
 
-mainLoop :: IO ()
-mainLoop = loop where
-  loop = do v <- iv
-            drawEditor editor v
-            e <- next_event v
-            updateEditor editor e v
-            if done editor then shutdown v else loop
-  iv = mkVty
-  editor = undefined
-
-drawEditor :: Editor -> Vty -> IO ()
-drawEditor e v = return ()
+drawEditor :: BufferList -> Vty -> IO ()
+drawEditor bs v = return ()
