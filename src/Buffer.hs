@@ -4,12 +4,12 @@ module Buffer where
 import Data.Rope(Rope)
 import qualified Data.Rope as R
 import qualified Rope as R
--- Text of the buffer
--- Point
--- Mark
--- Undo
 
-data Buffer = B { name :: String, text :: Rope, point :: Int, mark :: Int , page :: (Int, Int)}
+data Buffer = B { name :: String,
+                  text :: Rope,
+                  point :: Int,
+                  mark :: Int ,
+                  page :: (Int, Int) }
             deriving Show
 
 instance Eq Buffer where
@@ -164,3 +164,13 @@ moveNextPage b = goToLine (lineCount b + (end - start)) b where
 movePreviousPage :: Buffer -> Buffer
 movePreviousPage b = goToLine (lineCount b - (end - start)) b where
   (start,end) = page b
+
+-- | Create a buffer from a file, given that file's path
+bufferFromFile :: String -> IO Buffer
+bufferFromFile path = do
+  t <- readFile path
+  return $ mkBuffer path t
+
+-- | Sync the contents of a buffer to a file, given that file's path.
+syncBuffer :: String -> Buffer -> IO ()
+syncBuffer path b = writeFile path (R.toString (text b))
