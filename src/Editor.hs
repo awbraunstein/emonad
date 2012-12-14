@@ -55,13 +55,19 @@ modifyCurrentBuffer f = modifyBufferList (transformCurrentBuffer f)
 updateEditor :: Event -> Context -> Editor
 updateEditor (EvKey (KASCII 'q') [MCtrl]) Editing = setDone
 updateEditor (EvKey (KASCII 'x') [MCtrl]) Editing = setContext (CtrlPrefix 'x')
-updateEditor (EvKey (KASCII 'b') []) (CtrlPrefix 'x') = undefined
+updateEditor (EvKey (KASCII 'b') []) (CtrlPrefix 'x') =
+  setContext (MiniBuffer (\s -> do
+                             st <- get
+                             modifyBufferList $ switchToBuffer s))
 updateEditor (EvKey (KASCII 'c') [MCtrl]) (CtrlPrefix 'x') = setContext Editing >> setDone
 updateEditor (EvKey (KASCII 'f') _) (CtrlPrefix 'x') =
   setContext (MiniBuffer (\s -> do
                              b <- liftIO $ bufferFromFile s
                              modifyBufferList (addBuffer b)))
-updateEditor (EvKey (KASCII 'k') []) (CtrlPrefix 'x') = setContext Editing >> undefined
+updateEditor (EvKey (KASCII 'k') []) (CtrlPrefix 'x') =
+  setContext (MiniBuffer (\s -> do
+                             st <- get
+                             modifyBufferList $ killBuffer s))
 updateEditor (EvKey (KASCII 's') _) (CtrlPrefix 'x') =
   setContext (MiniBuffer (\s -> do
                              st <- get
