@@ -4,9 +4,8 @@ import Graphics.Vty
 import Control.Monad.State
 import Buffer
 import BufferList
-import UI
 
-data Context = Editing | MiniBuffer Editor | CtrlPrefix Char
+data Context = Editing | MiniBuffer (String -> Editor) | CtrlPrefix Char
 
 data EditorState = ES { bufferList :: BufferList,
                         done :: Bool,
@@ -18,18 +17,6 @@ mkEditorState = ES mkBufferList False Editing ""
 
 type Editor = StateT EditorState IO ()
 
--- | Run an editor.
-runEditor :: IO ()
-runEditor = evalStateT loop mkEditorState where
-  loop = do v <- liftIO iv
-            s <- get
-            liftIO $ drawEditor (bufferList s) v
-            k <- liftIO $ next_event v
-            updateEditor k (context s)
-            s' <- get
-            if done s' then liftIO $ shutdown v else loop
-  iv = mkVty
-
 -- | Set an editor session as done.
 setDone :: Editor
 setDone = modify (\(ES bs _ c mb) -> ES bs True c mb)
@@ -38,6 +25,24 @@ setDone = modify (\(ES bs _ c mb) -> ES bs True c mb)
 setContext :: Context -> Editor
 setContext c = modify (\(ES bs d _ mb) -> ES bs d c mb)
 
+-- | Modify the minibuffer.
+modifyMiniBuffer :: (String -> String) -> Editor
+modifyMiniBuffer f = modify (\(ES bs d c mb) -> ES bs d c (f mb))
+
+-- | Set the minibuffer
+setMiniBuffer :: String -> Editor
+setMiniBuffer = modifyMiniBuffer . const
+
+-- | Put a character onto the minibuffer
+putMiniBuffer :: Char -> Editor
+putMiniBuffer c = modifyMiniBuffer (\s -> s ++ [c])
+
+-- | Delete the last character from the minibuffer
+deleteCharMiniBuffer :: Editor
+deleteCharMiniBuffer = modifyMiniBuffer safeInit where
+  safeInit [] = []
+  safeInit ts = init ts
+
 -- | Modify the buffer list in an editor session to a new buffer list.
 modifyBufferList :: (BufferList -> BufferList) -> Editor
 modifyBufferList f = modify (\(ES bs d c mb) -> ES (f bs) d c mb)
@@ -45,18 +50,6 @@ modifyBufferList f = modify (\(ES bs d c mb) -> ES (f bs) d c mb)
 -- | Modify the current buffer in an editor session.
 modifyCurrentBuffer :: (Buffer -> Buffer) -> Editor
 modifyCurrentBuffer f = modifyBufferList (transformCurrentBuffer f)
-
-getString :: Vty -> IO String
-getString v = do
-  e <- next_event v
-  case e of
-    EvKey (KASCII c) [] -> do
-      rest <- getString v
-      return $ c : rest
-    _ -> return []
-
-getInt :: Vty -> IO Int
-getInt v = fmap read (getString v)
 
 -- | Route keypresses to appropriate editor actions
 updateEditor :: Event -> Context -> Editor
@@ -70,13 +63,13 @@ updateEditor (EvKey (KASCII 'f') _) (CtrlPrefix 'x') = do
   setContext Editing
   modifyBufferList $ addBuffer b
 updateEditor (EvKey (KASCII 'k') []) (CtrlPrefix 'x') = setContext Editing >> undefined
-updateEditor (EvKey (KASCII 's') _) (CtrlPrefix 'x') = setContext Editing >> undefined
+updateEditor (EvKey (KASCII 's') _) (CtrlPrefix 'x') = setContext (MiniBuffer (liftIO . putStrLn))
 updateEditor (EvKey (KASCII 'x') [MCtrl]) (CtrlPrefix 'x') = setContext Editing >> modifyCurrentBuffer swapPointAndMark
 updateEditor (EvKey (KASCII 'b') [MCtrl]) Editing = modifyCurrentBuffer moveBackward
 updateEditor (EvKey (KASCII 'f') [MCtrl]) Editing = modifyCurrentBuffer moveForward
 updateEditor (EvKey (KASCII 'n') [MCtrl]) Editing = modifyCurrentBuffer moveNext
 updateEditor (EvKey (KASCII 'p') [MCtrl]) Editing = modifyCurrentBuffer movePrevious
-updateEditor (EvKey (KASCII 'g') [MCtrl]) _       = setContext Editing
+updateEditor (EvKey (KASCII 'g') [MCtrl]) _       = setMiniBuffer "" >> setContext Editing
 updateEditor (EvKey KLeft []) Editing             = modifyCurrentBuffer moveBackward
 updateEditor (EvKey KRight []) Editing            = modifyCurrentBuffer moveForward
 updateEditor (EvKey KUp []) Editing               = modifyCurrentBuffer moveNext
@@ -92,4 +85,11 @@ updateEditor (EvKey KDel []) Editing              = modifyCurrentBuffer $ delete
 updateEditor (EvKey KEnter []) Editing            = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
 updateEditor (EvKey KBS []) Editing               = modifyCurrentBuffer $ moveBackward . deleteCharBeforePoint
 updateEditor (EvKey KBackTab []) Editing          = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\t'
+updateEditor (EvKey KEnter []) (MiniBuffer a)     = do
+  setContext Editing
+  s <- get
+  a (miniBuffer s) -- run the action on the contents of the minibuffer
+  setMiniBuffer ""
+updateEditor (EvKey (KASCII c) []) (MiniBuffer _) = putMiniBuffer c
+updateEditor (EvKey KBS []) (MiniBuffer _) = deleteCharMiniBuffer
 updateEditor _ _                            = return ()

@@ -3,11 +3,12 @@
 module UI where
 
 import Graphics.Vty
+import Editor
 import BufferList
 import Buffer
 
-drawEditor :: BufferList -> Vty -> IO ()
-drawEditor (BL bs cb) v = update v $ pic_for_image screen where
+drawEditor :: EditorState -> Vty -> IO ()
+drawEditor (ES (BL bs cb) _ c mb) v = update v $ pic_for_image screen where
   mainAttr = with_style current_attr default_style_mask
   reverseAttr = with_style current_attr reverse_video
   screen = titleLine <-> buffer <-> modeLine <-> miniBuffer
@@ -26,7 +27,7 @@ drawEditor (BL bs cb) v = update v $ pic_for_image screen where
                          "," ++
                          show (lineAtPoint b) ++
                          ")"
-  miniBuffer = empty_image
+  miniBuffer = char mainAttr ' ' <|> string mainAttr mb
   decorateLine :: (String, Maybe Int) -> Image
   decorateLine (str, Nothing) = string mainAttr str
   decorateLine (str, Just i) = (horiz_cat $ pointifyLine str i 0) <|> char mainAttr ' '
