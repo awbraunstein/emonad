@@ -66,5 +66,5 @@
   7. Indentation - 4hrs (Maybe)
   8. More testing/Performance improvements - ??? (Maybe)
 
-     
-    
+* Installation instructions
+  Simply run cabal configure, then cabal install.
