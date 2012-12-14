@@ -6,65 +6,90 @@ import Buffer
 import BufferList
 import UI
 
-type EditorState = (Bool,BufferList)
+data Context = Editing | MiniBuffer Editor | CtrlPrefix Char
+
+data EditorState = ES { bufferList :: BufferList,
+                        done :: Bool,
+                        context :: Context,
+                        miniBuffer :: String }
+
+mkEditorState :: EditorState
+mkEditorState = ES mkBufferList False Editing ""
+
 type Editor = StateT EditorState IO ()
 
 -- | Run an editor.
 runEditor :: IO ()
-runEditor = evalStateT loop (False,mkBufferList) where
+runEditor = evalStateT loop mkEditorState where
   loop = do v <- liftIO iv
-            (_,bs) <- get
-            liftIO $ drawEditor bs v
+            s <- get
+            liftIO $ drawEditor (bufferList s) v
             k <- liftIO $ next_event v
-            updateEditor k v
-            (done,_) <- get
-            if done then liftIO $ shutdown v else loop
+            updateEditor k (context s)
+            s' <- get
+            if done s' then liftIO $ shutdown v else loop
   iv = mkVty
 
 -- | Set an editor session as done.
 setDone :: Editor
-setDone = modify (\(_,bs) -> (True,bs))
+setDone = modify (\(ES bs _ c mb) -> ES bs True c mb)
+
+-- | Set the context for an editor.
+setContext :: Context -> Editor
+setContext c = modify (\(ES bs d _ mb) -> ES bs d c mb)
 
 -- | Modify the buffer list in an editor session to a new buffer list.
 modifyBufferList :: (BufferList -> BufferList) -> Editor
-modifyBufferList f = modify (\(d,bs) -> (d,f bs))
+modifyBufferList f = modify (\(ES bs d c mb) -> ES (f bs) d c mb)
 
+-- | Modify the current buffer in an editor session.
 modifyCurrentBuffer :: (Buffer -> Buffer) -> Editor
 modifyCurrentBuffer f = modifyBufferList (transformCurrentBuffer f)
 
+getString :: Vty -> IO String
+getString v = do
+  e <- next_event v
+  case e of
+    EvKey (KASCII c) [] -> do
+      rest <- getString v
+      return $ c : rest
+    _ -> return []
+
+getInt :: Vty -> IO Int
+getInt v = fmap read (getString v)
+
 -- | Route keypresses to appropriate editor actions
-updateEditor :: Event -> Vty -> Editor
-updateEditor (EvKey (KASCII 'q') [MCtrl]) v = setDone
-updateEditor (EvKey (KASCII 'x') [MCtrl]) v = do
-  e' <- liftIO $ next_event v
-  case e' of
-    EvKey (KASCII 'x') [MCtrl] -> modifyCurrentBuffer swapPointAndMark
-    EvKey (KASCII 'f') _ -> do
-            b <- liftIO $ bufferFromFile "/Users/awbraunstein/test.py" -- find-file
-            liftIO $ putStrLn $ show b
-            modifyBufferList $ addBuffer b
-    EvKey (KASCII 's') _ -> undefined -- save-buffer
-    EvKey (KASCII 'c') [MCtrl] -> setDone
-    EvKey (KASCII 'b') [] -> undefined -- switch-buffer
-    EvKey (KASCII 'k') [] -> undefined -- kill-buffer
-    _ -> return ()
-updateEditor (EvKey (KASCII 'b') [MCtrl]) v = modifyCurrentBuffer moveBackward
-updateEditor (EvKey (KASCII 'f') [MCtrl]) v = modifyCurrentBuffer moveForward
-updateEditor (EvKey (KASCII 'n') [MCtrl]) v = modifyCurrentBuffer moveNext
-updateEditor (EvKey (KASCII 'p') [MCtrl]) v = modifyCurrentBuffer movePrevious
-updateEditor (EvKey KLeft []) v             = modifyCurrentBuffer moveBackward
-updateEditor (EvKey KRight []) v            = modifyCurrentBuffer moveForward
-updateEditor (EvKey KUp []) v               = modifyCurrentBuffer moveNext
-updateEditor (EvKey KDown []) v             = modifyCurrentBuffer movePrevious
-updateEditor (EvKey (KASCII 'd') [MCtrl]) v = modifyCurrentBuffer deleteCharAtPoint
-updateEditor (EvKey (KASCII ' ') [MCtrl]) v = modifyCurrentBuffer placeMarkAtPoint
-updateEditor (EvKey (KASCII 'a') [MCtrl]) v = modifyCurrentBuffer moveToBeginningOfLine
-updateEditor (EvKey (KASCII 'e') [MCtrl]) v = modifyCurrentBuffer moveToEndOfLine
-updateEditor (EvKey (KASCII 'v') [MCtrl]) v = modifyCurrentBuffer moveNextPage
-updateEditor (EvKey (KASCII 'v') [MMeta]) v = modifyCurrentBuffer movePreviousPage
-updateEditor (EvKey (KASCII c) []) v        = modifyCurrentBuffer $ moveForward . insertCharAtPoint c
-updateEditor (EvKey KDel []) v              = modifyCurrentBuffer $ deleteCharAtPoint
-updateEditor (EvKey KEnter []) v            = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
-updateEditor (EvKey KBS []) v               = modifyCurrentBuffer $ moveBackward . deleteCharBeforePoint
-updateEditor (EvKey KBackTab []) v          = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\t'
+updateEditor :: Event -> Context -> Editor
+updateEditor (EvKey (KASCII 'q') [MCtrl]) Editing = setDone
+updateEditor (EvKey (KASCII 'x') [MCtrl]) Editing = setContext (CtrlPrefix 'x')
+updateEditor (EvKey (KASCII 'b') []) (CtrlPrefix 'x') = undefined
+updateEditor (EvKey (KASCII 'c') [MCtrl]) (CtrlPrefix 'x') = setContext Editing >> setDone
+updateEditor (EvKey (KASCII 'f') _) (CtrlPrefix 'x') = do
+  b <- liftIO $ bufferFromFile "/Users/rafekett/test.py"
+  liftIO $ putStrLn $ show b
+  setContext Editing
+  modifyBufferList $ addBuffer b
+updateEditor (EvKey (KASCII 'k') []) (CtrlPrefix 'x') = setContext Editing >> undefined
+updateEditor (EvKey (KASCII 's') _) (CtrlPrefix 'x') = setContext Editing >> undefined
+updateEditor (EvKey (KASCII 'x') [MCtrl]) (CtrlPrefix 'x') = setContext Editing >> modifyCurrentBuffer swapPointAndMark
+updateEditor (EvKey (KASCII 'b') [MCtrl]) Editing = modifyCurrentBuffer moveBackward
+updateEditor (EvKey (KASCII 'f') [MCtrl]) Editing = modifyCurrentBuffer moveForward
+updateEditor (EvKey (KASCII 'n') [MCtrl]) Editing = modifyCurrentBuffer moveNext
+updateEditor (EvKey (KASCII 'p') [MCtrl]) Editing = modifyCurrentBuffer movePrevious
+updateEditor (EvKey (KASCII 'g') [MCtrl]) _       = setContext Editing
+updateEditor (EvKey KLeft []) Editing             = modifyCurrentBuffer moveBackward
+updateEditor (EvKey KRight []) Editing            = modifyCurrentBuffer moveForward
+updateEditor (EvKey KUp []) Editing               = modifyCurrentBuffer moveNext
+updateEditor (EvKey KDown []) Editing             = modifyCurrentBuffer movePrevious
+updateEditor (EvKey (KASCII 'd') [MCtrl]) Editing = modifyCurrentBuffer deleteCharAtPoint
+updateEditor (EvKey (KASCII ' ') [MCtrl]) Editing = modifyCurrentBuffer placeMarkAtPoint
+updateEditor (EvKey (KASCII 'a') [MCtrl]) Editing = modifyCurrentBuffer moveToBeginningOfLine
+updateEditor (EvKey (KASCII 'e') [MCtrl]) Editing = modifyCurrentBuffer moveToEndOfLine
+updateEditor (EvKey (KASCII 'v') [MCtrl]) Editing = modifyCurrentBuffer moveNextPage
+updateEditor (EvKey (KASCII 'v') [MMeta]) Editing = modifyCurrentBuffer movePreviousPage
+updateEditor (EvKey (KASCII c) []) Editing        = modifyCurrentBuffer $ moveForward . insertCharAtPoint c
+updateEditor (EvKey KDel []) Editing              = modifyCurrentBuffer $ deleteCharAtPoint
+updateEditor (EvKey KEnter []) Editing            = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
+updateEditor (EvKey KBS []) Editing               = modifyCurrentBuffer $ moveBackward . deleteCharBeforePoint
+updateEditor (EvKey KBackTab []) Editing          = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\t'
 updateEditor _ _                            = return ()
