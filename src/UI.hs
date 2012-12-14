@@ -16,7 +16,8 @@ drawEditor (ES (BL _ cb) _ c (p,mb) _) v = update v $ pic_for_image screen where
   buffer = case cb of
     Nothing -> empty_image
     Just b -> let (s,e) = page b in
-      pad (1, toEnum (e - s)) $ vert_cat $ map decorateLine (getLinesForPage b)
+      pad (1, toEnum (e - s)) $ vert_cat $ map decorateLine (getLinesForPage b) ++
+      [char mainAttr ' ']
 
   modeLine = string reverseAttr $
              case cb of
