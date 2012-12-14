@@ -67,5 +67,7 @@
    Property based testing
 
 * Installation instructions
-  src_{cabal configure}
-  src_{cabal install}
+  #+BEGIN_SRC
+  cabal configure
+  cabal install
+  #+END_SRC
