@@ -2,6 +2,7 @@
 module Buffer where
 
 import Data.Rope(Rope)
+import Data.Maybe
 import qualified Data.Rope as R
 import qualified Rope as R
 import System.Directory
@@ -157,6 +158,9 @@ lineAtPoint (B _ t p _ _) = aux (map (++ " ") (lines $ R.toString t)) 0 0 where
     | n > p    = ls
     | otherwise = aux xs (n + (length x)) (ls + 1)
   aux [] _ ls = ls
+
+columnAtPoint :: Buffer -> Int
+columnAtPoint b = foldl (\p (_, mc) -> p + fromMaybe 0 mc) 0 (getLinesForPage b)
 
 -- | This will bring the point into the page if it goes past and
 --   make sure the mark and point are never out of bounds

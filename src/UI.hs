@@ -23,7 +23,7 @@ drawEditor (ES (BL _ cb) _ c (p,mb)) v = update v $ pic_for_image screen where
                Just b -> (name b) ++
                          "  " ++
                          "(" ++
-                         show (point b) ++
+                         show (columnAtPoint b) ++
                          "," ++
                          show (lineAtPoint b) ++
                          ")"
