@@ -10,24 +10,35 @@ data Context = Editing | MiniBuffer (String -> Editor) | CtrlPrefix Char
 data EditorState = ES { bufferList :: BufferList,
                         done :: Bool,
                         context :: Context,
-                        miniBuffer :: (String, String) }
+                        miniBuffer :: (String, String),
+                        vty :: Vty }
 
-mkEditorState :: EditorState
-mkEditorState = ES mkBufferList False Editing ("","")
+-- | Make a buffer with correct pages.
+mkIdealBuffer :: Vty -> Buffer -> IO Buffer
+mkIdealBuffer v (B n t _ _ _) = do
+  dims <- display_bounds (terminal v)
+  return $ B n t 0 0 (0, fromEnum (region_height dims) - 3)
+
+-- | Make a fresh editor state, with correct pages (we must be in IO to know
+--   the display size).
+mkIdealEditorState :: Vty -> IO EditorState
+mkIdealEditorState v = do
+  b <- mkIdealBuffer v scratchBuffer
+  return $ ES (BL [] (Just b)) False Editing ("","") v
 
 type Editor = StateT EditorState IO ()
 
 -- | Set an editor session as done.
 setDone :: Editor
-setDone = modify (\(ES bs _ c mb) -> ES bs True c mb)
+setDone = modify (\(ES bs _ c mb v) -> ES bs True c mb v)
 
 -- | Set the context for an editor.
 setContext :: Context -> Editor
-setContext c = modify (\(ES bs d _ mb) -> ES bs d c mb)
+setContext c = modify (\(ES bs d _ mb v) -> ES bs d c mb v)
 
 -- | Modify the minibuffer.
 modifyMiniBuffer :: (String -> String) -> Editor
-modifyMiniBuffer f = modify (\(ES bs d c (p, mb)) -> ES bs d c (p, (f mb)))
+modifyMiniBuffer f = modify (\(ES bs d c (p, mb) v) -> ES bs d c (p, (f mb)) v)
 
 -- | Set the minibuffer
 setMiniBuffer :: String -> Editor
@@ -35,11 +46,11 @@ setMiniBuffer = modifyMiniBuffer . const
 
 -- | Clear the minibuffer
 clearMiniBuffer :: Editor
-clearMiniBuffer = modify (\(ES bs d c _) -> ES bs d c ("",""))
+clearMiniBuffer = modify (\(ES bs d c _ v) -> ES bs d c ("","") v)
 
 -- | Set the minibuffer prompt
 setMiniBufferPrompt :: String -> Editor
-setMiniBufferPrompt s = modify (\(ES bs d c (_, mb)) -> ES bs d c (s, mb))
+setMiniBufferPrompt s = modify (\(ES bs d c (_, mb) v) -> ES bs d c (s, mb) v)
 
 -- | Put a character onto the minibuffer
 putMiniBuffer :: Char -> Editor
@@ -53,7 +64,7 @@ deleteCharMiniBuffer = modifyMiniBuffer safeInit where
 
 -- | Modify the buffer list in an editor session to a new buffer list.
 modifyBufferList :: (BufferList -> BufferList) -> Editor
-modifyBufferList f = modify (\(ES bs d c mb) -> ES (f bs) d c mb)
+modifyBufferList f = modify (\(ES bs d c mb v) -> ES (f bs) d c mb v)
 
 -- | Modify the current buffer in an editor session.
 modifyCurrentBuffer :: (Buffer -> Buffer) -> Editor
@@ -77,7 +88,9 @@ updateEditor (EvKey (KASCII 'f') _) (CtrlPrefix 'x') =
   (setMiniBufferPrompt "Find file:") >>
   setContext (MiniBuffer (\s -> do
                              b <- liftIO $ bufferFromFile s
-                             modifyBufferList (addBuffer b)))
+                             st <- get
+                             ib <- liftIO $ mkIdealBuffer (vty st) b
+                             modifyBufferList (addBuffer ib)))
 updateEditor (EvKey (KASCII 'k') []) (CtrlPrefix 'x') =
   (do
     st <- get
