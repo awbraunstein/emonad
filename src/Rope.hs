@@ -4,6 +4,8 @@ import Prelude hiding (take,drop,splitAt,length)
 import qualified Data.List as L
 import Data.Monoid
 import Data.Rope
+import Control.Monad
+import Test.QuickCheck
 
 -- | O(log(n)). Insert a character at a particular index in a rope.
 insert :: Int -> Char -> Rope -> Rope
@@ -13,7 +15,7 @@ insert i c r =
 
 -- | O(log(n)). Delete the character at a particular index in a rope.
 delete :: Int -> Rope -> Rope
-delete i r = take (i - 1) r `mappend` drop i r
+delete i r = take (i - 1) r `mappend` drop (max 1 i) r
 
 -- | O(n). Find the index of a character in the rope.
 elemIndex :: Rope -> Char -> Maybe Int
@@ -37,3 +39,18 @@ index :: Int -> Rope -> Maybe Char
 index i r
        | i >= length r || i < 0 = Nothing
        | otherwise = Just $ L.head $ toString $ take 1 $ drop i r
+
+-- QuickCheck instances and properties follow
+instance Arbitrary Rope where
+  arbitrary = liftM fromString arbitrary
+  shrink r = map fromString (shrink $ toString r)
+
+prop_insert :: Char -> Rope -> Bool
+prop_insert c r =
+  let (bef,aft) = L.splitAt (length r) (toString r) in
+  toString (insert (length r) c r) == bef ++ [c] ++ aft
+
+prop_delete :: Rope -> Property
+prop_delete r =
+  length r >= 1 ==>
+  toString (delete (length r - 1) r) == L.take (length r - 1) (toString r)
