@@ -28,7 +28,7 @@ mkEmptyBuffer = flip mkBuffer $ ""
 
 -- | Make a new buffer given a name and text
 mkBuffer :: String -> String -> Buffer
-mkBuffer n t = B n (R.fromString t) 0 0 (0,0)
+mkBuffer n t = B n (R.fromString t) 0 0 (0,24)
 
 -- | Move relative to the point. Positive indices move the point forward,
 --   negative indices move the point backward.
@@ -174,3 +174,22 @@ bufferFromFile path = do
 -- | Sync the contents of a buffer to a file, given that file's path.
 syncBuffer :: String -> Buffer -> IO ()
 syncBuffer path b = writeFile path (R.toString (text b))
+
+-- | Gets the text from the buffer
+getText :: Buffer -> String
+getText = R.toString . text
+
+-- | Gets the text as a list of lines with the possibility of a point value
+getLinesForPage :: Buffer -> [(String, Maybe Int)]
+getLinesForPage b@(B n t p m (st, end)) = aux (lines ts) 0 0
+  where
+  ts = getText b
+  aux (x:xs) count ls
+    | ls < st = aux xs (count + (length x)) (ls + 1)
+    | ls >= st && ls < end =
+      if p < count + (length x) && p >= count then
+        (x, Just (p - count)) : aux xs (count + (length x)) (ls + 1)
+      else
+        (x, Nothing) : aux xs (count + (length x)) (ls + 1)
+    | ls >= end = []
+  aux [] count ls = []

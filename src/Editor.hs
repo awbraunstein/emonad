@@ -13,10 +13,11 @@ type Editor = StateT EditorState IO ()
 runEditor :: IO ()
 runEditor = evalStateT loop (False,mkBufferList) where
   loop = do v <- liftIO iv
-            (done,bs) <- get
+            (_,bs) <- get
             liftIO $ drawEditor bs v
             k <- liftIO $ next_event v
             updateEditor k v
+            (done,_) <- get
             if done then liftIO $ shutdown v else loop
   iv = mkVty
 
@@ -38,7 +39,10 @@ updateEditor (EvKey (KASCII 'x') [MCtrl]) v = do
   e' <- liftIO $ next_event v
   case e' of
     EvKey (KASCII 'x') [MCtrl] -> modifyCurrentBuffer swapPointAndMark
-    EvKey (KASCII 'f') _ -> undefined -- find-file
+    EvKey (KASCII 'f') _ -> do
+            b <- liftIO $ bufferFromFile "/Users/awbraunstein/test.py" -- find-file
+            liftIO $ putStrLn $ show b
+            modifyBufferList $ addBuffer b
     EvKey (KASCII 's') _ -> undefined -- save-buffer
     EvKey (KASCII 'c') [MCtrl] -> setDone
     EvKey (KASCII 'b') [] -> undefined -- switch-buffer

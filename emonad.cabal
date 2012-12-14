@@ -15,6 +15,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable emonad
+  GHC-Options:         -Wall
   main-is:             Main.hs
   -- other-modules:       
   build-depends:       base ==4.5.*, mtl, rope, vty
