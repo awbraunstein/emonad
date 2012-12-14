@@ -17,7 +17,7 @@ data EditorState = ES { bufferList :: BufferList,
 mkIdealBuffer :: Vty -> Buffer -> IO Buffer
 mkIdealBuffer v (B n t _ _ _) = do
   dims <- display_bounds (terminal v)
-  return $ B n t 0 0 (0, fromEnum (region_height dims) - 3)
+  return $ B n t 0 0 (0, fromEnum (region_height dims) - 4)
 
 -- | Make a fresh editor state, with correct pages (we must be in IO to know
 --   the display size).

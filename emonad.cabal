@@ -18,5 +18,5 @@ executable emonad
   GHC-Options:         -Wall
   main-is:             Main.hs
   -- other-modules:       
-  build-depends:       base ==4.5.*, mtl, rope, vty, directory
+  build-depends:       base ==4.5.*, mtl, rope, vty, directory, QuickCheck
   hs-source-dirs:      src
