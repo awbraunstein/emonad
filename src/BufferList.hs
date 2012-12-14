@@ -24,25 +24,28 @@ transformCurrentBuffer f (BL bs (Just c)) = BL bs (Just (f c))
 addBuffer :: Buffer -> BufferList -> BufferList
 addBuffer b (BL bs mc) = BL ((maybeToList mc) ++ bs) (Just b)
 
--- | Switch to a buffer by index.
-switchToBuffer :: Int -> BufferList -> BufferList
-switchToBuffer n (BL bs mc) = BL (fst ++ end) (Just cx) where
-  (fst, cx : end) = splitAt n (bs ++ (maybeToList mc))
+-- | Switch to a buffer by name.
+switchToBuffer :: String -> BufferList -> BufferList
+switchToBuffer n b@(BL bs mc) = case mb' of
+                                  Nothing -> b
+                                  _ -> BL bl mb'
+  where (mb', bl) = lookupByName n $ bs ++ (maybeToList mc)
 
--- | Buffer name, index association list with the last element as the current buffer
-getBuffersForSwitch :: BufferList -> [(String, Int)]
-getBuffersForSwitch (BL bs mc) = zip (map name (bs ++ (maybeToList mc))) [0..] where
 
--- | Buffer name, index association list with the first element as the current buffer
-getBuffersForKill :: BufferList -> [(String, Int)]
-getBuffersForKill (BL bs mc) = zip (map name ((maybeToList mc) ++ bs)) [0..] where
+lookupByName :: String -> [Buffer] -> (Maybe Buffer, [Buffer])
+lookupByName s bs = let (s', ds) = partition (\b -> (name b) == s) bs in
+  case s' of
+    []   -> (Nothing, ds)
+    [x]  -> (Just x, ds)
+    x:xs -> (Just x, xs ++ ds)
 
-maybeHeadSplit :: [a] -> (Maybe a, [a])
-maybeHeadSplit []       = (Nothing, [])
-maybeHeadSplit (x : xs) = (Just x, xs)
+defaultTail :: [a] -> [a]
+defaultTail (x:xs) = xs
+defaultTail []     = []
 
--- | Kill a buffer by index. If it is the current buffer, switch to the last buffer
-killBuffer :: Int -> BufferList -> BufferList
-killBuffer n (BL bs mc) = BL bs' cx where
-  (fst, c' : end) = splitAt n ((maybeToList mc) ++ bs)
-  (cx, bs') = maybeHeadSplit (fst ++ end)
+-- | Kill a buffer by name. If it is the current buffer, switch to the last buffer
+killBuffer :: String -> BufferList -> BufferList
+killBuffer n b@(BL bs mc) = case mb' of
+                              Nothing -> b
+                              _ -> BL (defaultTail bl) (listToMaybe bl)
+  where (mb', bl) = lookupByName n $ bs ++ (maybeToList mc)
