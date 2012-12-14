@@ -16,7 +16,16 @@ drawEditor (BL bs cb) v = update v $ pic_for_image screen where
   buffer = case cb of
     Nothing -> empty_image
     Just b -> vert_cat $ map decorateLine (getLinesForPage b)
-  modeLine = empty_image
+  modeLine = string reverseAttr $
+             case cb of
+               Nothing -> "No Buffer -- Use C-x C-f to open a new file"
+               Just b -> (name b) ++
+                         "  " ++
+                         "(" ++
+                         show (point b) ++
+                         "," ++
+                         show (lineAtPoint b) ++
+                         ")"
   miniBuffer = empty_image
   decorateLine :: (String, Maybe Int) -> Image
   decorateLine (str, Nothing) = string mainAttr str

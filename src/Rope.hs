@@ -21,13 +21,17 @@ elemIndex r c = L.elemIndex c (toString r)
 
 -- | O(n). Find the index of a character searching forward from a particular index.
 elemIndexForward :: Rope -> Int -> Char -> Maybe Int
-elemIndexForward r i c = do j <- elemIndex (drop (i - 1) r) c
-                            return $ i + j - 1
+elemIndexForward r i c = do j <- elemIndex (drop (i) r) c
+                            return $ i + j
 
 -- | O(n). Find the index of a character searching backward from a particular index.
 --   Includes the character at the index in its search.
 elemIndexBackward :: Rope -> Int -> Char -> Maybe Int
-elemIndexBackward r i = elemIndex (take (i + 1) r)
+elemIndexBackward r i c =
+  case L.elemIndices c (toString (take i r)) of
+    [] -> Nothing
+    xs -> Just $ L.last xs
+
 
 -- | Find the character at the current index given
 index :: Int -> Rope -> Maybe Char

@@ -63,11 +63,11 @@ deleteChar i (B n t p m pg) = B n (R.delete i t) p m pg
 
 -- | Delete the character at the point.
 deleteCharAtPoint :: Buffer -> Buffer
-deleteCharAtPoint b@(B n t p m _) = deleteChar p b
+deleteCharAtPoint b@(B n t p m _) = deleteChar (p + 1) b
 
 -- | Delete the character before the point.
 deleteCharBeforePoint :: Buffer -> Buffer
-deleteCharBeforePoint b@(B n t p m _) = deleteChar (p - 1) b
+deleteCharBeforePoint b@(B n t p m _) = deleteChar p b
 
 -- | Insert a character at an index.
 insertChar :: Int -> Char -> Buffer -> Buffer
@@ -133,11 +133,11 @@ lineCount :: Buffer -> Int
 lineCount b@(B n t p m pg) = length $ lines $ R.toString t
 
 lineAtPoint :: Buffer -> Int
-lineAtPoint b@(B n t p m pg) = aux (lines $ R.toString t) p 0 0 where
-  aux (x:xs) p' n ls
-    | n >= p    = ls
-    | otherwise = aux xs p' (n + (length x)) (ls + 1)
-  aux [] p' n ls = ls
+lineAtPoint b@(B _ t p m pg) = aux (map (++ " ") (lines $ R.toString t)) 0 0 where
+  aux (x:xs) n ls
+    | n > p    = ls
+    | otherwise = aux xs (n + (length x)) (ls + 1)
+  aux [] n ls = ls
 
 -- | This will bring the point into the page if it goes past and
 --   make sure the mark and point are never out of bounds
@@ -181,7 +181,7 @@ getText = R.toString . text
 
 -- | Gets the text as a list of lines with the possibility of a point value
 getLinesForPage :: Buffer -> [(String, Maybe Int)]
-getLinesForPage b@(B n t p m (st, end)) = aux (lines ts) 0 0
+getLinesForPage b@(B n t p m (st, end)) = aux (map (++ " ") (lines ts)) 0 0
   where
   ts = getText b
   aux (x:xs) count ls
