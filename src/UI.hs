@@ -27,7 +27,10 @@ drawEditor (ES (BL bs cb) _ c mb) v = update v $ pic_for_image screen where
                          "," ++
                          show (lineAtPoint b) ++
                          ")"
-  miniBuffer = char mainAttr ' ' <|> string mainAttr mb
+  miniBuffer = char mainAttr ' ' <|> case c of
+                                          Editing -> empty_image
+                                          MiniBuffer _ -> string mainAttr mb
+                                          CtrlPrefix c -> string mainAttr ['C','-',c]
   decorateLine :: (String, Maybe Int) -> Image
   decorateLine (str, Nothing) = string mainAttr str
   decorateLine (str, Just i) = (horiz_cat $ pointifyLine str i 0) <|> char mainAttr ' '
