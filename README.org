@@ -20,8 +20,6 @@
   elisp at its core, emonad will have Haskell at its core. Config
   files will be written in Haskell.
 
-* Installation
-
 * Typical Use Case
   - 552 Homework
     Open a haskell buffer, make changes, save it.
