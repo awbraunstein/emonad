@@ -119,14 +119,14 @@ moveBackwardUntilDelimiter n c b@(B _ t p _ _) =
 -- | Move the point forward to the next instance of a character, the delimiter.
 --   If the character doesn't exist after the point, move to the end of the file.
 moveForwardToDelimiter :: Char -> Buffer -> Buffer
-moveForwardToDelimiter c b@(B n t p m pg) = updatePage $ case R.elemIndexForward t p c of
+moveForwardToDelimiter c (B n t p m pg) = updatePage $ case R.elemIndexForward t p c of
   Nothing -> B n t (R.length t) m pg
   Just x -> B n t x m pg
 
 -- | Move the point backward to the last instance of a character, the delimiter.
 --   If the character doesn't exist before the point, move to the start of the file.
 moveBackwardToDelimiter :: Char -> Buffer -> Buffer
-moveBackwardToDelimiter c b@(B n t p m pg) = updatePage $ case R.elemIndexBackward t p c of
+moveBackwardToDelimiter c (B n t p m pg) = updatePage $ case R.elemIndexBackward t p c of
   Nothing -> B n t 0 m pg
   Just x -> B n t x m pg
 
