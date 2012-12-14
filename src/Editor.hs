@@ -62,7 +62,12 @@ updateEditor (EvKey (KASCII 'f') _) (CtrlPrefix 'x') =
                              b <- liftIO $ bufferFromFile s
                              modifyBufferList (addBuffer b)))
 updateEditor (EvKey (KASCII 'k') []) (CtrlPrefix 'x') = setContext Editing >> undefined
-updateEditor (EvKey (KASCII 's') _) (CtrlPrefix 'x') = setContext (MiniBuffer (liftIO . putStrLn))
+updateEditor (EvKey (KASCII 's') _) (CtrlPrefix 'x') =
+  setContext (MiniBuffer (\s -> do
+                             st <- get
+                             case current (bufferList st) of
+                               Nothing -> return ()
+                               Just b -> liftIO $ syncBuffer s b))
 updateEditor (EvKey (KASCII 'x') [MCtrl]) (CtrlPrefix 'x') = setContext Editing >> modifyCurrentBuffer swapPointAndMark
 updateEditor (EvKey (KASCII 'b') [MCtrl]) Editing = modifyCurrentBuffer moveBackward
 updateEditor (EvKey (KASCII 'f') [MCtrl]) Editing = modifyCurrentBuffer moveForward
