@@ -46,19 +46,25 @@ updateEditor (EvKey (KASCII 'x') [MCtrl]) v = do
     EvKey (KASCII 's') _ -> undefined -- save-buffer
     EvKey (KASCII 'c') [MCtrl] -> setDone
     EvKey (KASCII 'b') [] -> undefined -- switch-buffer
+    EvKey (KASCII 'k') [] -> undefined -- kill-buffer
     _ -> return ()
 updateEditor (EvKey (KASCII 'b') [MCtrl]) v = modifyCurrentBuffer moveBackward
 updateEditor (EvKey (KASCII 'f') [MCtrl]) v = modifyCurrentBuffer moveForward
 updateEditor (EvKey (KASCII 'n') [MCtrl]) v = modifyCurrentBuffer moveNext
 updateEditor (EvKey (KASCII 'p') [MCtrl]) v = modifyCurrentBuffer movePrevious
+updateEditor (EvKey KLeft []) v             = modifyCurrentBuffer moveBackward
+updateEditor (EvKey KRight []) v            = modifyCurrentBuffer moveForward
+updateEditor (EvKey KUp []) v               = modifyCurrentBuffer moveNext
+updateEditor (EvKey KDown []) v             = modifyCurrentBuffer movePrevious
 updateEditor (EvKey (KASCII 'd') [MCtrl]) v = modifyCurrentBuffer deleteCharAtPoint
 updateEditor (EvKey (KASCII ' ') [MCtrl]) v = modifyCurrentBuffer placeMarkAtPoint
 updateEditor (EvKey (KASCII 'a') [MCtrl]) v = modifyCurrentBuffer moveToBeginningOfLine
 updateEditor (EvKey (KASCII 'e') [MCtrl]) v = modifyCurrentBuffer moveToEndOfLine
 updateEditor (EvKey (KASCII 'v') [MCtrl]) v = modifyCurrentBuffer moveNextPage
 updateEditor (EvKey (KASCII 'v') [MMeta]) v = modifyCurrentBuffer movePreviousPage
-updateEditor (EvKey (KASCII c) []) v = modifyCurrentBuffer $ insertCharAtPoint c
-updateEditor (EvKey KDel []) v= modifyCurrentBuffer $ deleteCharAtPoint
-updateEditor (EvKey KEnter []) v= modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
-updateEditor (EvKey KBS []) v= modifyCurrentBuffer $ moveBackward . deleteCharBeforePoint
-updateEditor _ _ = return ()
+updateEditor (EvKey (KASCII c) []) v        = modifyCurrentBuffer $ moveForward . insertCharAtPoint c
+updateEditor (EvKey KDel []) v              = modifyCurrentBuffer $ deleteCharAtPoint
+updateEditor (EvKey KEnter []) v            = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
+updateEditor (EvKey KBS []) v               = modifyCurrentBuffer $ moveBackward . deleteCharBeforePoint
+updateEditor (EvKey KBackTab []) v          = modifyCurrentBuffer $ moveForward . insertCharAtPoint '\t'
+updateEditor _ _                            = return ()
