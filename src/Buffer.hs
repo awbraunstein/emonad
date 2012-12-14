@@ -171,8 +171,8 @@ updatePage :: Buffer -> Buffer
 updatePage b@(B n t p m (start, end))
   | p > len = error "point outside of length"
   | m > len = error "mark outside of length"
-  | lap > end = B n t p m (start + 1, end + 1)
-  | lap < start = B n t p m (start - 1, end - 1)
+  | lap >= end = B n t p m (start + 1, end + 1)
+  | lap <= start = B n t p m (start - 1, end - 1)
   | otherwise = b where
 
     len = length $ R.toString t
