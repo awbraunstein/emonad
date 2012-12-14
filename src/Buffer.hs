@@ -37,7 +37,7 @@ mkBuffer n t = B n (R.fromString t) 0 0 (0,24)
 -- | Move relative to the point. Positive indices move the point forward,
 --   negative indices move the point backward.
 move :: Int -> Buffer -> Buffer
-move i (B n t p m pg) = B n t p' m pg where
+move i (B n t p m pg) = updatePage (B n t p' m pg) where
   p' = max 0 (min (p + i) (R.length t))
 
 -- | Move the point forward one character.
@@ -123,14 +123,14 @@ moveBackwardUntilDelimiter n c b@(B _ t p _ _) =
 -- | Move the point forward to the next instance of a character, the delimiter.
 --   If the character doesn't exist after the point, move to the end of the file.
 moveForwardToDelimiter :: Char -> Buffer -> Buffer
-moveForwardToDelimiter c b@(B n t p m pg) = case R.elemIndexForward t p c of
+moveForwardToDelimiter c b@(B n t p m pg) = updatePage $ case R.elemIndexForward t p c of
   Nothing -> B n t (R.length t) m pg
   Just x -> B n t x m pg
 
 -- | Move the point backward to the last instance of a character, the delimiter.
 --   If the character doesn't exist before the point, move to the start of the file.
 moveBackwardToDelimiter :: Char -> Buffer -> Buffer
-moveBackwardToDelimiter c b@(B n t p m pg) = case R.elemIndexBackward t p c of
+moveBackwardToDelimiter c b@(B n t p m pg) = updatePage $ case R.elemIndexBackward t p c of
   Nothing -> B n t 0 m pg
   Just x -> B n t x m pg
 
@@ -149,7 +149,7 @@ moveToEndOfLine = moveForwardToDelimiter '\n'
 -- | Go to the same position in a line specified by an int, or do nothing
 --   if that line doesnt't exist.
 goToLine :: Int -> Buffer -> Buffer
-goToLine n b@(B nm t p m pg) = B nm t np m pg where
+goToLine n b@(B nm t p m pg) = updatePage $ B nm t np m pg where
   np = max 0 $ pred $ sum $ map length $ take n $ lines $ R.toString t
 
 -- | Get the total number of lines
@@ -166,19 +166,16 @@ lineAtPoint b@(B _ t p m pg) = aux (map (++ " ") (lines $ R.toString t)) 0 0 whe
 -- | This will bring the point into the page if it goes past and
 --   make sure the mark and point are never out of bounds
 updatePage :: Buffer -> Buffer
-updatePage b@(B n t p m (start, end)) = let len = length $ R.toString t
-                                            lap = lineAtPoint b
-                                        in
-                                          if p > len then -- rewrite this shit
-                                            error "point outside of length"
-                                          else if m > len then
-                                                 error "mark outside of length"
-                                               else if lap > end then
-                                                      B n t p m (start + 1, end + 1)
-                                                    else if lap < start then
-                                                           B n t p m (start - 1, end - 1)
-                                                         else b
+updatePage b@(B n t p m (start, end))
+  | p > len = error "point outside of length"
+  | m > len = error "mark outside of length"
+  | lap > end = B n t p m (start + 1, end + 1)
+  | lap < start = B n t p m (start - 1, end - 1)
+  | otherwise = b where
 
+    len = length $ R.toString t
+    lap = lineAtPoint b
+    
 -- | Move to the next page
 moveNextPage :: Buffer -> Buffer
 moveNextPage b = goToLine (lineCount b + (end - start)) b where
