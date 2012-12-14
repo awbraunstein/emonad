@@ -6,6 +6,7 @@ import qualified Data.Rope as R
 import qualified Rope as R
 import qualified Control.Exception as E
 import System.Directory
+import Scratch
 
 data Buffer = B { name :: String,
                   text :: Rope,
@@ -23,6 +24,9 @@ instance Ord Buffer where
 -- | Rename a buffer
 renameBuffer :: String -> Buffer -> Buffer
 renameBuffer n (B _ t p m pg) = B n t p m pg
+
+scratchBuffer :: Buffer
+scratchBuffer = mkBuffer "*scratch*" scratch
 
 -- | Make an empty buffer with a given name
 mkEmptyBuffer :: String -> Buffer
