@@ -1,4 +1,4 @@
-#+TITLE:     552 Final Project Proposal (emonad)
+#+TITLE:     Emonad
 #+AUTHOR:    Andrew Braunstein <bandrew> and Rafe Kettler <rkettler>
 #+EMAIL:     bandrew@seas.upenn.edu -- rkettler@seas.upenn.edu
 #+DATE:      2012-11-04 Sun
@@ -20,49 +20,52 @@
   elisp at its core, emonad will have Haskell at its core. Config
   files will be written in Haskell.
 
-* Typical Use Case
-  - 552 Homework
-    Open a haskell buffer, make changes, save it.
-  - Writing a letter to a long lost friend
-    Open a text buffer, make changes, save it.
-  - Proving P /= NP (Coq mode needed)
-  - Anywhere you would use emacs, you can just use emonad!!
-
 * Architecture
-** Ncurses frontend
-   - Uses hscurses
-   - Display editor state
-     - Display current buffer
-     - Mode (saved, changed, readonly)
-     - Line numbers
-     - Line/Column
-     - Name of current buffer
-     - Echo area
-** User Input Module
-   - Listens to keypresses
-   - Updates editor state accordingly
-** Core Editor Module
-   - List of buffers
-   - Modes
-   - Buffer Transformers
-** Buffer Module
-   - Write to disk
-   - Mark/Point
-   - Text
-   - Other metadata
-** Config file loader
-   - Keybindings
-   - Macros
+** Rope
+   This is the data structure that holds the text of the buffer. We
+   extended the rope library with a few extra functions that make it
+   easier to use.
+   - log time insertion and deletion
+   - constant time length
+** Buffer
+   This is the data structure that deals with the buffer
+   - Move the mark and point
+   - Manipulate text
+   - Save to a file
+   - Load from a file
+   - Paging
+** BufferList
+   This is the module that deals with the collection of buffers.
+   - Add new buffers
+   - Kill buffer
+   - Switch between buffers
+   - Transform the current buffer
+** Editor
+   This is the current state of the editor. It knows about the buffer
+   list, the context of key presses, the minibuffer, and the terminal
+   - Deals with user input
+   - Switches between buffer and minibuffer
+   - Reads user input (IO)
+   - Sets the text in the minibuffer
+** UI
+   This is the code that draws the editor in the terminal
+   - Primarily uses the vty library
+   - Uses combinators to layout the page
 
-* Effort Budget
-  1. Build the Buffer module - 10hrs
-  2. Build Editor module - 10hrs
-  3. Build the ncurses frontend - 10hrs
-  4. Build the event loop - 3hrs
-  5. Build the config file loader - 7hrs
-  6. Syntax highlighting - 2hrs (Maybe)
-  7. Indentation - 4hrs (Maybe)
-  8. More testing/Performance improvements - ??? (Maybe)
+* Additional Libraries
+** Rope
+   This is the efficient data structure that we use to store text
+** Vty
+   Terminal interaction library
+** mtl
+   Monads!!!
+** directory
+   Library that deals with the filesystem
+** HUnit
+   Unit testing
+** QuickCheck
+   Property based testing
 
 * Installation instructions
-  Simply run cabal configure, then cabal install.
+  src_{cabal configure}
+  src_{cabal install}
