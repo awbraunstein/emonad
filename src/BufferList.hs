@@ -13,7 +13,7 @@ data BufferList = BL { buffers :: [Buffer], current :: Maybe Buffer }
 -}
 
 mkBufferList :: BufferList
-mkBufferList = BL [] Nothing
+mkBufferList = BL [] (Just scratchBuffer)
 
 -- | Transform the current buffer for the buffer list.
 transformCurrentBuffer :: (Buffer -> Buffer) -> BufferList -> BufferList
