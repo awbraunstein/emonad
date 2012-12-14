@@ -10,10 +10,10 @@ data Context = Editing | MiniBuffer (String -> Editor) | CtrlPrefix Char
 data EditorState = ES { bufferList :: BufferList,
                         done :: Bool,
                         context :: Context,
-                        miniBuffer :: String }
+                        miniBuffer :: (String, String) }
 
 mkEditorState :: EditorState
-mkEditorState = ES mkBufferList False Editing ""
+mkEditorState = ES mkBufferList False Editing ("","")
 
 type Editor = StateT EditorState IO ()
 
@@ -27,11 +27,19 @@ setContext c = modify (\(ES bs d _ mb) -> ES bs d c mb)
 
 -- | Modify the minibuffer.
 modifyMiniBuffer :: (String -> String) -> Editor
-modifyMiniBuffer f = modify (\(ES bs d c mb) -> ES bs d c (f mb))
+modifyMiniBuffer f = modify (\(ES bs d c (p, mb)) -> ES bs d c (p, (f mb)))
 
 -- | Set the minibuffer
 setMiniBuffer :: String -> Editor
 setMiniBuffer = modifyMiniBuffer . const
+
+-- | Clear the minibuffer
+clearMiniBuffer :: Editor
+clearMiniBuffer = modify (\(ES bs d c _) -> ES bs d c ("",""))
+
+-- | Set the minibuffer prompt
+setMiniBufferPrompt :: String -> Editor
+setMiniBufferPrompt s = modify (\(ES bs d c (_, mb)) -> ES bs d c (s, mb))
 
 -- | Put a character onto the minibuffer
 putMiniBuffer :: Char -> Editor
@@ -56,19 +64,36 @@ updateEditor :: Event -> Context -> Editor
 updateEditor (EvKey (KASCII 'q') [MCtrl]) Editing = setDone
 updateEditor (EvKey (KASCII 'x') [MCtrl]) Editing = setContext (CtrlPrefix 'x')
 updateEditor (EvKey (KASCII 'b') []) (CtrlPrefix 'x') =
+  (do
+    st <- get
+    case buffers (bufferList st) of
+      [] -> return ()
+      b:_ -> (setMiniBuffer $ name b) >> (setMiniBufferPrompt "Switch to buffer:")
+  ) >>
   setContext (MiniBuffer (\s -> do
-                             st <- get
                              modifyBufferList $ switchToBuffer s))
 updateEditor (EvKey (KASCII 'c') [MCtrl]) (CtrlPrefix 'x') = setContext Editing >> setDone
 updateEditor (EvKey (KASCII 'f') _) (CtrlPrefix 'x') =
+  (setMiniBufferPrompt "Find file:") >>
   setContext (MiniBuffer (\s -> do
                              b <- liftIO $ bufferFromFile s
                              modifyBufferList (addBuffer b)))
 updateEditor (EvKey (KASCII 'k') []) (CtrlPrefix 'x') =
+  (do
+    st <- get
+    case current (bufferList st) of
+      Nothing -> return ()
+      Just b -> (setMiniBuffer $ name b) >> (setMiniBufferPrompt "Kill buffer:")
+  ) >>
   setContext (MiniBuffer (\s -> do
-                             st <- get
                              modifyBufferList $ killBuffer s))
 updateEditor (EvKey (KASCII 's') _) (CtrlPrefix 'x') =
+  (do
+    st <- get
+    case current (bufferList st) of
+      Nothing -> return ()
+      Just b -> (setMiniBuffer $ name b) >> (setMiniBufferPrompt "Save buffer to file:")
+  ) >>
   setContext (MiniBuffer (\s -> do
                              st <- get
                              case current (bufferList st) of
@@ -79,7 +104,7 @@ updateEditor (EvKey (KASCII 'b') [MCtrl]) Editing = modifyCurrentBuffer moveBack
 updateEditor (EvKey (KASCII 'f') [MCtrl]) Editing = modifyCurrentBuffer moveForward
 updateEditor (EvKey (KASCII 'n') [MCtrl]) Editing = modifyCurrentBuffer moveNext
 updateEditor (EvKey (KASCII 'p') [MCtrl]) Editing = modifyCurrentBuffer movePrevious
-updateEditor (EvKey (KASCII 'g') [MCtrl]) _       = setMiniBuffer "" >> setContext Editing
+updateEditor (EvKey (KASCII 'g') [MCtrl]) _       = clearMiniBuffer >> setContext Editing
 updateEditor (EvKey KLeft []) Editing             = modifyCurrentBuffer moveBackward
 updateEditor (EvKey KRight []) Editing            = modifyCurrentBuffer moveForward
 updateEditor (EvKey KUp []) Editing               = modifyCurrentBuffer moveNext
@@ -98,8 +123,8 @@ updateEditor (EvKey KBackTab []) Editing          = modifyCurrentBuffer $ moveFo
 updateEditor (EvKey KEnter []) (MiniBuffer a)     = do
   setContext Editing
   s <- get
-  a (miniBuffer s) -- run the action on the contents of the minibuffer
-  setMiniBuffer ""
+  a $ snd (miniBuffer s) -- run the action on the contents of the minibuffer
+  clearMiniBuffer
 updateEditor (EvKey (KASCII c) []) (MiniBuffer _) = putMiniBuffer c
 updateEditor (EvKey KBS []) (MiniBuffer _) = deleteCharMiniBuffer
 updateEditor _ _                            = return ()

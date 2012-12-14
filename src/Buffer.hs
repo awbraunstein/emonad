@@ -4,7 +4,6 @@ module Buffer where
 import Data.Rope(Rope)
 import qualified Data.Rope as R
 import qualified Rope as R
-import qualified Control.Exception as E
 import System.Directory
 import Scratch
 
@@ -14,12 +13,6 @@ data Buffer = B { name :: String,
                   mark :: Int ,
                   page :: (Int, Int) }
             deriving Show
-
-instance Eq Buffer where
-  (B n1 _ _ _ _) == (B n2 _ _ _ _) = n1 == n2
-
-instance Ord Buffer where
-  (B n1 _ _ _ _) `compare` (B n2 _ _ _ _) = n1 `compare` n2
 
 -- | Rename a buffer
 renameBuffer :: String -> Buffer -> Buffer
@@ -61,7 +54,7 @@ movePrevious b@(B _ t p _ _) =
 
 -- | Move to the same position in the next line.
 moveNext :: Buffer -> Buffer
-moveNext b@(B n t p m _) =
+moveNext b@(B _ t p _ _) =
   let start = case R.elemIndexBackward t p '\n' of
                 Nothing -> 0
                 Just x -> (x + 1) in
@@ -74,11 +67,11 @@ deleteChar i (B n t p m pg) = B n (R.delete i t) p m pg
 
 -- | Delete the character at the point.
 deleteCharAtPoint :: Buffer -> Buffer
-deleteCharAtPoint b@(B n t p m _) = deleteChar (p + 1) b
+deleteCharAtPoint b@(B _ _ p _ _) = deleteChar (p + 1) b
 
 -- | Delete the character before the point.
 deleteCharBeforePoint :: Buffer -> Buffer
-deleteCharBeforePoint b@(B n t p m _) = deleteChar p b
+deleteCharBeforePoint b@(B _ _ p _ _) = deleteChar p b
 
 -- | Insert a character at an index.
 insertChar :: Int -> Char -> Buffer -> Buffer
@@ -90,7 +83,7 @@ insertCharAtPoint c b = insertChar (point b) c b
 
 -- | Place the mark at an index.
 placeMark :: Int -> Buffer -> Buffer
-placeMark i (B n t p m pg) = B n t p i pg
+placeMark i (B n t p _ pg) = B n t p i pg
 
 -- | Place the mark at the point.
 placeMarkAtPoint :: Buffer -> Buffer
@@ -151,19 +144,19 @@ moveToEndOfLine = moveForwardToDelimiter '\n'
 -- | Go to the same position in a line specified by an int, or do nothing
 --   if that line doesnt't exist.
 goToLine :: Int -> Buffer -> Buffer
-goToLine n b@(B nm t p m pg) = updatePage $ B nm t np m pg where
+goToLine n (B nm t _ m pg) = updatePage $ B nm t np m pg where
   np = max 0 $ pred $ sum $ map length $ take n $ lines $ R.toString t
 
 -- | Get the total number of lines
 lineCount :: Buffer -> Int
-lineCount b@(B n t p m pg) = length $ lines $ R.toString t
+lineCount (B _ t _ _ _) = length $ lines $ R.toString t
 
 lineAtPoint :: Buffer -> Int
-lineAtPoint b@(B _ t p m pg) = aux (map (++ " ") (lines $ R.toString t)) 0 0 where
+lineAtPoint (B _ t p _ _) = aux (map (++ " ") (lines $ R.toString t)) 0 0 where
   aux (x:xs) n ls
     | n > p    = ls
     | otherwise = aux xs (n + (length x)) (ls + 1)
-  aux [] n ls = ls
+  aux [] _ ls = ls
 
 -- | This will bring the point into the page if it goes past and
 --   make sure the mark and point are never out of bounds
@@ -177,7 +170,7 @@ updatePage b@(B n t p m (start, end))
 
     len = length $ R.toString t
     lap = lineAtPoint b
-    
+
 -- | Move to the next page
 moveNextPage :: Buffer -> Buffer
 moveNextPage b = goToLine (lineCount b + (end - start)) b where
@@ -208,9 +201,11 @@ getText = R.toString . text
 
 -- | Gets the text as a list of lines with the possibility of a point value
 getLinesForPage :: Buffer -> [(String, Maybe Int)]
-getLinesForPage b@(B n t p m (st, end)) = aux (map (++ " ") (lines ts)) 0 0
+getLinesForPage b@(B _ _ p _ (st, end)) = aux (map (++ " ") (lines ts)) 0 0
   where
   ts = getText b
+  aux :: [String] -> Int -> Int -> [(String, Maybe Int)]
+  aux [] _ _ = []
   aux (x:xs) count ls
     | ls < st = aux xs (count + (length x)) (ls + 1)
     | ls >= st && ls < end =
@@ -219,4 +214,4 @@ getLinesForPage b@(B n t p m (st, end)) = aux (map (++ " ") (lines ts)) 0 0
       else
         (x, Nothing) : aux xs (count + (length x)) (ls + 1)
     | ls >= end = []
-  aux [] count ls = []
+    | otherwise = []

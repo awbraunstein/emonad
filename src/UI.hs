@@ -6,7 +6,7 @@ import BufferList
 import Buffer
 
 drawEditor :: EditorState -> Vty -> IO ()
-drawEditor (ES (BL _ cb) _ c mb) v = update v $ pic_for_image screen where
+drawEditor (ES (BL _ cb) _ c (p,mb)) v = update v $ pic_for_image screen where
   mainAttr = with_style current_attr default_style_mask
   reverseAttr = with_style current_attr reverse_video
   screen = titleLine <-> buffer <-> modeLine <-> minibuffer
@@ -30,7 +30,9 @@ drawEditor (ES (BL _ cb) _ c mb) v = update v $ pic_for_image screen where
 
   minibuffer = char mainAttr ' ' <|> case c of
     Editing -> empty_image
-    MiniBuffer _ -> string mainAttr mb <|>
+    MiniBuffer _ -> string mainAttr p <|>
+                    char mainAttr ' ' <|>
+                    string mainAttr mb <|>
                     char reverseAttr ' ' <|>
                     char mainAttr ' '
     CtrlPrefix ch -> string mainAttr ['C','-',ch]
@@ -40,6 +42,6 @@ drawEditor (ES (BL _ cb) _ c mb) v = update v $ pic_for_image screen where
                                char mainAttr ' '
 
   pointifyLine (x:xs) ind count =
-    let p = (if ind == count then char reverseAttr else char mainAttr) x in
-    p : pointifyLine xs ind (count + 1)
+    let p' = (if ind == count then char reverseAttr else char mainAttr) x in
+    p' : pointifyLine xs ind (count + 1)
   pointifyLine [] _ _ = []
