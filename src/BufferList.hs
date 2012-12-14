@@ -17,7 +17,7 @@ mkBufferList = BL [] Nothing
 
 -- | Transform the current buffer for the buffer list.
 transformCurrentBuffer :: (Buffer -> Buffer) -> BufferList -> BufferList
-transformCurrentBuffer f b@(BL _ Nothing) = b
+transformCurrentBuffer _ b@(BL _ Nothing) = b
 transformCurrentBuffer f (BL bs (Just c)) = BL bs (Just (f c))
 
 -- | Add a buffer to the buffer list.
@@ -40,7 +40,7 @@ lookupByName s bs = let (s', ds) = partition (\b -> (name b) == s) bs in
     x:xs -> (Just x, xs ++ ds)
 
 defaultTail :: [a] -> [a]
-defaultTail (x:xs) = xs
+defaultTail (_:xs) = xs
 defaultTail []     = []
 
 -- | Kill a buffer by name. If it is the current buffer, switch to the last buffer

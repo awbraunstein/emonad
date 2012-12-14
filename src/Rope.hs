@@ -24,14 +24,13 @@ elemIndexForward :: Rope -> Int -> Char -> Maybe Int
 elemIndexForward r i c = do j <- elemIndex (drop (i) r) c
                             return $ i + j
 
--- | O(n). Find the index of a character searching backward from a particular index.
---   Includes the character at the index in its search.
+-- | O(n). Find the index of a character searching backward from a particular
+--   index. Includes the character at the index in its search.
 elemIndexBackward :: Rope -> Int -> Char -> Maybe Int
 elemIndexBackward r i c =
   case L.elemIndices c (toString (take i r)) of
     [] -> Nothing
     xs -> Just $ L.last xs
-
 
 -- | Find the character at the current index given
 index :: Int -> Rope -> Maybe Char
