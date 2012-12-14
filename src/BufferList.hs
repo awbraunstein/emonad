@@ -1,6 +1,5 @@
 module BufferList where
 
-import Data.List
 import Data.Maybe
 import Buffer
 
@@ -17,7 +16,7 @@ mkBufferList = BL [] Nothing
 
 -- | Transform the current buffer for the buffer list.
 transformCurrentBuffer :: (Buffer -> Buffer) -> BufferList -> BufferList
-transformCurrentBuffer f b@(BL _ Nothing) = b
+transformCurrentBuffer _ b@(BL _ Nothing) = b
 transformCurrentBuffer f (BL bs (Just c)) = BL bs (Just (f c))
 
 -- | Add a buffer to the buffer list.
@@ -26,8 +25,8 @@ addBuffer b (BL bs mc) = BL ((maybeToList mc) ++ bs) (Just b)
 
 -- | Switch to a buffer by index.
 switchToBuffer :: Int -> BufferList -> BufferList
-switchToBuffer n (BL bs mc) = BL (fst ++ end) (Just cx) where
-  (fst, cx : end) = splitAt n (bs ++ (maybeToList mc))
+switchToBuffer n (BL bs mc) = BL (fs ++ end) (Just cx) where
+  (fs, cx : end) = splitAt n (bs ++ (maybeToList mc))
 
 -- | Buffer name, index association list with the last element as the current buffer
 getBuffersForSwitch :: BufferList -> [(String, Int)]
@@ -44,5 +43,5 @@ maybeHeadSplit (x : xs) = (Just x, xs)
 -- | Kill a buffer by index. If it is the current buffer, switch to the last buffer
 killBuffer :: Int -> BufferList -> BufferList
 killBuffer n (BL bs mc) = BL bs' cx where
-  (fst, c' : end) = splitAt n ((maybeToList mc) ++ bs)
-  (cx, bs') = maybeHeadSplit (fst ++ end)
+  (fs, _ : end) = splitAt n ((maybeToList mc) ++ bs)
+  (cx, bs') = maybeHeadSplit (fs ++ end)
