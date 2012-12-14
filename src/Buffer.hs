@@ -4,6 +4,8 @@ module Buffer where
 import Data.Rope(Rope)
 import qualified Data.Rope as R
 import qualified Rope as R
+import qualified Control.Exception as E
+import System.Directory
 
 data Buffer = B { name :: String,
                   text :: Rope,
@@ -188,7 +190,11 @@ movePreviousPage b = goToLine (lineCount b - (end - start)) b where
 -- | Create a buffer from a file, given that file's path
 bufferFromFile :: String -> IO Buffer
 bufferFromFile path = do
-  t <- readFile path
+  b <- doesFileExist path
+  t <- (if b then
+            readFile path
+        else
+            return "")
   return $ mkBuffer path t
 
 -- | Sync the contents of a buffer to a file, given that file's path.
