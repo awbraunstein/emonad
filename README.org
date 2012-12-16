@@ -66,6 +66,21 @@
 ** QuickCheck
    Property based testing
 
+* Controls
+  - C-x C-f: Find file
+  - C-x C-s: Save buffer to file
+  - C-x b: Switch to buffer by name
+  - C-x k: Kill buffer by name
+  - C-a: Beginning of line
+  - C-e: End of line
+  - C-f: Move forward
+  - C-b: Move Backward
+  - C-n: Move to next line
+  - C-p: Move to previous line
+  - C-space: Set the mark
+  - C-x C-x: Swap the point and mark
+  - C-d: Delete
+  - C-g: Exit command or minibuffer
 * Installation instructions
   #+BEGIN_SRC shell
   cabal configure
