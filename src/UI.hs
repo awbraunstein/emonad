@@ -6,7 +6,7 @@ import BufferList
 import Buffer
 
 drawEditor :: EditorState -> Vty -> IO ()
-drawEditor (ES (BL _ cb) _ c (p,mb) _) v = update v $ pic_for_image screen where
+drawEditor (ES (BL _ cb _) _ c (p,mb) _) v = update v $ pic_for_image screen where
   mainAttr = with_style current_attr default_style_mask
   reverseAttr = with_style current_attr reverse_video
   screen = titleLine <-> buffer <-> modeLine <-> minibuffer

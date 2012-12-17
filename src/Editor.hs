@@ -4,6 +4,7 @@ import Graphics.Vty
 import Control.Monad.State
 import Buffer
 import BufferList
+import KillRing
 
 data Context = Editing | MiniBuffer (String -> Editor) | CtrlPrefix Char
 
@@ -24,7 +25,7 @@ mkIdealBuffer v (B n t _ _ _) = do
 mkIdealEditorState :: Vty -> IO EditorState
 mkIdealEditorState v = do
   b <- mkIdealBuffer v scratchBuffer
-  return $ ES (BL [] (Just b)) False Editing ("","") v
+  return $ ES (BL [] (Just b) mkKillRing) False Editing ("","") v
 
 type Editor = StateT EditorState IO ()
 
@@ -70,6 +71,10 @@ modifyBufferList f = modify (\(ES bs d c mb v) -> ES (f bs) d c mb v)
 modifyCurrentBuffer :: (Buffer -> Buffer) -> Editor
 modifyCurrentBuffer f = modifyBufferList (transformCurrentBuffer f)
 
+-- | Modify the current buffer in an editor session.
+modifyCurrentBufferWithKillRing :: (KillRing -> Buffer -> (Buffer, KillRing)) -> Editor
+modifyCurrentBufferWithKillRing f = modifyBufferList (transformCurrentBufferWithKillRing f)
+
 -- | Route keypresses to appropriate editor actions. This function is big, but
 --   there are quite a few shortcuts to consider.
 updateEditor :: Event -> Context -> Editor
@@ -86,6 +91,7 @@ updateEditor ev Editing =
     EvKey (KASCII ' ') [MCtrl] -> modifyCurrentBuffer placeMarkAtPoint
     EvKey (KASCII 'a') [MCtrl] -> modifyCurrentBuffer moveToBeginningOfLine
     EvKey (KASCII 'e') [MCtrl] -> modifyCurrentBuffer moveToEndOfLine
+    EvKey (KASCII 'w') [MCtrl] -> modifyCurrentBufferWithKillRing killRegion
     EvKey (KASCII c) [] -> modifyCurrentBuffer $ moveForward . insertCharAtPoint c
     EvKey KDel [] -> modifyCurrentBuffer deleteCharAtPoint
     EvKey KEnter [] -> modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
@@ -94,6 +100,7 @@ updateEditor ev Editing =
 -- C-x prefix
 updateEditor ev (CtrlPrefix 'x') =
   case ev of
+    EvKey (KASCII 'g') [MCtrl] -> clearMiniBuffer >> setContext Editing
     EvKey (KASCII 'b') [] -> do
       st <- get
       case buffers (bufferList st) of

@@ -8,6 +8,7 @@ import qualified Data.Rope as R
 import qualified Rope as R
 import System.Directory
 import Scratch
+import KillRing
 
 data Buffer = B { name :: String,
                   text :: Rope,
@@ -297,3 +298,18 @@ getLinesForPage b@(B _ _ p _ (st, end)) = aux (map (++ " ") (lines ts)) 0 0
         (x, Nothing) : aux xs (count + (length x)) (ls + 1)
     | ls >= end = []
     | otherwise = []
+
+killRegion :: KillRing -> Buffer -> (Buffer, KillRing)
+killRegion kr b = (b', addToKillRing s kr)
+  where
+    (s, b') = aux ("", b) (min (point b) (mark b)) (max (point b) (mark b))
+    aux :: (String, Buffer) -> Int -> Int -> (String, Buffer)
+    aux (s', b'') st en
+      | st == en = (s', b'')
+      | otherwise =
+        case R.index en (text b'') of
+          Nothing -> (s', b'')
+          Just c -> aux (c:s', deleteChar en b'') st (en - 1)
+
+yank :: KillRing -> Buffer -> (Buffer, KillRing)
+yank = undefined
