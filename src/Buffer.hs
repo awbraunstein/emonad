@@ -1,7 +1,6 @@
 -- Buffer Module
 module Buffer where
 
-import Test.HUnit hiding(path)
 import Data.Rope(Rope)
 import Data.Maybe
 import qualified Data.Rope as R
@@ -17,30 +16,9 @@ data Buffer = B { name :: String,
                   page :: (Int, Int) }
             deriving Show
 
-tests :: Test
-tests = test [tRenameBuffer,
-              tMkBufferName,
-              tMkBufferText,
-              tMove1,
-              tMove2,
-              tMove3,
-              tMove4,
-              tMovePrev1,
-              tMovePrev2,
-              tMovePrev3,
-              tMoveNext1,
-              tMoveNext2,
-              tMoveNext3,
-              tDeleteChar,
-              tInsertChar
-             ]
-
 -- | Rename a buffer
 renameBuffer :: String -> Buffer -> Buffer
 renameBuffer n (B _ t p m pg) = B n t p m pg
-
-tRenameBuffer :: Test
-tRenameBuffer = "renameBuffer" ~: name (renameBuffer "new" (mkEmptyBuffer "t")) ~?= "new"
 
 scratchBuffer :: Buffer
 scratchBuffer = mkBuffer "*scratch*" scratch
@@ -48,14 +26,6 @@ scratchBuffer = mkBuffer "*scratch*" scratch
 -- | Make an empty buffer with a given name
 mkEmptyBuffer :: String -> Buffer
 mkEmptyBuffer = flip mkBuffer $ ""
-
-tMkBufferName :: Test
-tMkBufferName = "mkBufferName" ~: name b ~?= "name"
-  where b = mkBuffer "name" "text"
-
-tMkBufferText :: Test
-tMkBufferText = "mkBufferText" ~: R.toString (text b) ~?= "text"
-  where b = mkBuffer "name" "text"
 
 -- | Make a new buffer given a name and text
 mkBuffer :: String -> String -> Buffer
@@ -66,22 +36,6 @@ mkBuffer n t = B n (R.fromString t) 0 0 (0,24)
 move :: Int -> Buffer -> Buffer
 move i (B n t p m pg) = updatePage (B n t p' m pg) where
   p' = max 0 (min (p + i) (R.length t - 1))
-
-tMove1 :: Test
-tMove1 = "tMove1" ~: point (move 1 b) ~?= 1
-  where b = mkBuffer "name" "text"
-
-tMove2 :: Test
-tMove2 = "tMove2" ~: point (move (-1) b) ~?= 0
-  where b = mkBuffer "name" "text"
-
-tMove3 :: Test
-tMove3 = "tMove3" ~: point (move 10 b) ~?= 3
-  where b = mkBuffer "name" "text"
-
-tMove4 :: Test
-tMove4 = "tMove4" ~: point (move (-1) (move 10 b)) ~?= 2
-  where b = mkBuffer "name" "text"
 
 -- | Move the point forward one character.
 moveForward :: Buffer -> Buffer
@@ -100,18 +54,6 @@ movePrevious b@(B _ t p _ _) =
   let b' = (moveToBeginningOfLine . moveBackward . moveToBeginningOfLine) b in
   moveForwardUntilDelimiter ((point b) - start ) '\n' b'
 
-tMovePrev1 :: Test
-tMovePrev1 = "tMovePrev1" ~: point (movePrevious (move 10 b)) ~?= 3
-  where b = mkBuffer "name" (unlines ["012345","012345"])
-
-tMovePrev2 :: Test
-tMovePrev2 = "tMovePrev2" ~: point (movePrevious (move 9 b)) ~?= 2
-  where b = mkBuffer "name" (unlines ["012345","012345"])
-
-tMovePrev3 :: Test
-tMovePrev3 = "tMovePrev3" ~: point (movePrevious (move 0 b)) ~?= 0
-  where b = mkBuffer "name" (unlines ["012345","012345"])
-
 -- | Move to the same position in the next line.
 moveNext :: Buffer -> Buffer
 moveNext b@(B _ t p _ _) =
@@ -121,25 +63,9 @@ moveNext b@(B _ t p _ _) =
   let b' = (moveForward . moveToEndOfLine) b in
   moveForwardUntilDelimiter ((point b) - start) '\n' b'
 
-tMoveNext1 :: Test
-tMoveNext1 = "tMoveNext1" ~: point (moveNext (move 10 b)) ~?= 13
-  where b = mkBuffer "name" (unlines ["012345","012345"])
-
-tMoveNext2 :: Test
-tMoveNext2 = "tMoveNext2" ~: point (moveNext (move 2 b)) ~?= 9
-  where b = mkBuffer "name" (unlines ["012345","012345"])
-
-tMoveNext3 :: Test
-tMoveNext3 = "tMoveNext3" ~: point (moveNext (move 0 b)) ~?= 7
-  where b = mkBuffer "name" (unlines ["012345","012345"])
-
 -- | Delete a character at an index
 deleteChar :: Int -> Buffer -> Buffer
 deleteChar i (B n t p m pg) = B n (R.delete (i + 1) t) p m pg
-
-tDeleteChar :: Test
-tDeleteChar = "tDeleteChar" ~: R.toString (text (deleteChar 0 b)) ~?= "est"
-  where b = mkBuffer "name" "test"
 
 -- | Delete the character at the point.
 deleteCharAtPoint :: Buffer -> Buffer
@@ -152,10 +78,6 @@ deleteCharBeforePoint b@(B _ _ p _ _) = deleteChar (p - 1) b
 -- | Insert a character at an index.
 insertChar :: Int -> Char -> Buffer -> Buffer
 insertChar i c (B n t p m pg) = B n (R.insert i c t) p m pg
-
-tInsertChar :: Test
-tInsertChar = "tInsertChar" ~: R.toString (text (insertChar 0 'a' b)) ~?= "atest"
-  where b = mkBuffer "name" "test"
 
 -- | Insert a character at the point.
 insertCharAtPoint :: Char -> Buffer -> Buffer
@@ -311,5 +233,8 @@ killRegion kr b = (b', addToKillRing s kr)
           Nothing -> (s', b'')
           Just c -> aux (c:s', deleteChar en b'') st (en - 1)
 
-yank :: KillRing -> Buffer -> (Buffer, KillRing)
-yank = undefined
+yankRegion :: KillRing -> Buffer -> (Buffer, KillRing)
+yankRegion kr b = (aux (yank kr) b, kr)
+  where aux :: String -> Buffer -> Buffer
+        aux ""     = id
+        aux (x:xs) = aux xs . moveForward . insertCharAtPoint x

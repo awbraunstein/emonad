@@ -92,6 +92,7 @@ updateEditor ev Editing =
     EvKey (KASCII 'a') [MCtrl] -> modifyCurrentBuffer moveToBeginningOfLine
     EvKey (KASCII 'e') [MCtrl] -> modifyCurrentBuffer moveToEndOfLine
     EvKey (KASCII 'w') [MCtrl] -> modifyCurrentBufferWithKillRing killRegion
+    EvKey (KASCII 'y') [MCtrl] -> modifyCurrentBufferWithKillRing yankRegion
     EvKey (KASCII c) [] -> modifyCurrentBuffer $ moveForward . insertCharAtPoint c
     EvKey KDel [] -> modifyCurrentBuffer deleteCharAtPoint
     EvKey KEnter [] -> modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
