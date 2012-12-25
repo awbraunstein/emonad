@@ -32,6 +32,7 @@ drawEditor (ES (BL _ cb _) _ c (p,mb) _) v = update v $ pic_for_image screen whe
 
   minibuffer = char mainAttr ' ' <|> case c of
     Editing -> empty_image
+    Yanking -> empty_image
     MiniBuffer _ -> string mainAttr p <|>
                     char mainAttr ' ' <|>
                     string mainAttr mb <|>

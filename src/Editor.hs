@@ -6,7 +6,7 @@ import Buffer
 import BufferList
 import KillRing
 
-data Context = Editing | MiniBuffer (String -> Editor) | CtrlPrefix Char
+data Context = Editing | MiniBuffer (String -> Editor) | CtrlPrefix Char | Yanking
 
 data EditorState = ES { bufferList :: BufferList,
                         done :: Bool,
@@ -92,12 +92,17 @@ updateEditor ev Editing =
     EvKey (KASCII 'a') [MCtrl] -> modifyCurrentBuffer moveToBeginningOfLine
     EvKey (KASCII 'e') [MCtrl] -> modifyCurrentBuffer moveToEndOfLine
     EvKey (KASCII 'w') [MCtrl] -> modifyCurrentBufferWithKillRing killRegion
-    EvKey (KASCII 'y') [MCtrl] -> modifyCurrentBufferWithKillRing yankRegion
+    EvKey (KASCII 'y') [MCtrl] -> modifyCurrentBufferWithKillRing yankRegion >> setContext Yanking
     EvKey (KASCII c) [] -> modifyCurrentBuffer $ moveForward . insertCharAtPoint c
     EvKey KDel [] -> modifyCurrentBuffer deleteCharAtPoint
     EvKey KEnter [] -> modifyCurrentBuffer $ moveForward . insertCharAtPoint '\n'
     EvKey KBS [] -> modifyCurrentBuffer $ moveBackward . deleteCharBeforePoint
     _ -> return ()
+-- While yanking
+updateEditor ev Yanking =
+  case ev of
+    EvKey (KASCII 'y') [MMeta] -> modifyCurrentBufferWithKillRing yankNextRegion
+    _ -> setContext Editing >> updateEditor ev Editing
 -- C-x prefix
 updateEditor ev (CtrlPrefix 'x') =
   case ev of

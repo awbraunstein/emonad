@@ -221,8 +221,9 @@ getLinesForPage b@(B _ _ p _ (st, end)) = aux (map (++ " ") (lines ts)) 0 0
     | ls >= end = []
     | otherwise = []
 
-killRegion :: KillRing -> Buffer -> (Buffer, KillRing)
-killRegion kr b = (b', addToKillRing s kr)
+
+deleteRegion :: Buffer -> (Buffer, String)
+deleteRegion b = (b', s)
   where
     (s, b') = aux ("", b) (min (point b) (mark b)) (max (point b) (mark b))
     aux :: (String, Buffer) -> Int -> Int -> (String, Buffer)
@@ -233,8 +234,20 @@ killRegion kr b = (b', addToKillRing s kr)
           Nothing -> (s', b'')
           Just c -> aux (c:s', deleteChar en b'') st (en - 1)
 
+killRegion :: KillRing -> Buffer -> (Buffer, KillRing)
+killRegion kr b = (b', addToKillRing s kr)
+  where (b', s) = deleteRegion b
+
 yankRegion :: KillRing -> Buffer -> (Buffer, KillRing)
-yankRegion kr b = (aux (yank kr) b, kr)
+yankRegion kr b = let (st, kr') = yank kr in
+                  (aux st b, kr')
+  where aux :: String -> Buffer -> Buffer
+        aux ""     = id
+        aux (x:xs) = aux xs . moveForward . insertCharAtPoint x
+
+yankNextRegion :: KillRing -> Buffer -> (Buffer, KillRing)
+yankNextRegion kr b = let (st, kr') = yankNext kr in
+                  (aux st b, kr')
   where aux :: String -> Buffer -> Buffer
         aux ""     = id
         aux (x:xs) = aux xs . moveForward . insertCharAtPoint x
